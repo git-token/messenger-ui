@@ -1,5 +1,5 @@
 {
-  "name": "gittoken-ui-components",
+  "name": "gittoken-messenger-ui",
   "version": "0.0.1",
   "description": "UI Components for GitToken",
   "main": "./dist/index",
