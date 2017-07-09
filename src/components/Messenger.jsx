@@ -8,7 +8,8 @@ import {
 } from 'react-bootstrap'
 
 import {
-  ShowDataMessage
+  ShowDataMessage,
+  ContributionsChart
 } from './index'
 
 import {
@@ -86,7 +87,7 @@ class MessengerComponent extends Component {
   }
 
   showTabs () {
-    const { gittoken: { messenger: { topics } } } = this.props
+    const { gittoken: { isContributor, verified, messenger: { activeTopic, topics } } } = this.props
 
     let scroll = (_element) => {
       if (_element) {
@@ -94,16 +95,27 @@ class MessengerComponent extends Component {
       }
     }
 
-    return topics.map((topic, i) => {
+    return topics.filter((topic) => {
+      if (topic == 'account' || verified && isContributor) {
+        return true
+      } else if (
+        topic == 'contributions' &&
+        verified && !isContributor
+      ) {
+        return true
+      }
+    }).map((topic, i) => {
       return (
         <Tab eventKey={topic} title={topic} key={i}>
-          <br/>
+        <br/>
         <div
           ref={(element) => scroll(element)} style={{
               height: '400px',
               overflow: 'auto'
             }}>
-            <br/>{this.showMessages(topic)}
+            <br/>
+            { topic != 'contributions' ? null : <ContributionsChart />}
+            {this.showMessages(topic)}
           </div>
         </Tab>
       )

@@ -18,8 +18,8 @@ class ContributionsChartComponent extends Component {
   }
 
   componentDidMount() {
-    const { dispatch } = this.props
-    dispatch(contractDetails())
+    const { dispatch, gittoken: { messenger: { activeTopic } } } = this.props
+    dispatch(contractDetails({ activeTopic }))
   }
 
   handleZoom(domain) {
@@ -33,7 +33,7 @@ class ContributionsChartComponent extends Component {
   render () {
     return (
       <div>
-        <VictoryChart width={600} height={400} scale={{x: "time"}}
+        <VictoryChart width={600} height={200} scale={{x: "time"}}
           containerComponent={<VictoryContainer responsive={true}/>}
           containerComponent={
             <VictoryZoomContainer

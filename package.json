@@ -11,7 +11,8 @@
   "author": "GitToken",
   "license": "MIT",
   "dependencies": {
-    "gittoken-api-middleware": "0.0.18",
+    "github-graphql-client": "^1.0.0",
+    "gittoken-api-middleware": "0.0.35",
     "react": "^15.5.4",
     "react-bootstrap": "^0.31.0",
     "react-dom": "^15.5.4",

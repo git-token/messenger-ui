@@ -62,8 +62,8 @@ const INITIAL_GITTOKEN_STATE = {
     inputType: 'text',
     placeholder: 'Type `/help` for options',
     data: {},
-    activeTopic: 'login',
-    topics: [ 'login', 'exchange', 'vote', 'contributions' ],
+    activeTopic: 'account',
+    topics: [ 'account', 'contributions', 'vote', 'exchange' ],
     cmdData: GITTOKEN_CMD_DATA,
     messages: [{
       contributor: 'GitToken Helper',

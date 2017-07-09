@@ -5,6 +5,8 @@ import web3 from '../web3Provider'
 import config from '../../app.config'
 import { w3cwebsocket } from 'websocket'
 import { keystore, signing } from 'eth-lightwallet/dist/lightwallet.min.js'
+import github from 'github-graphql-client'
+import { sha3 } from 'ethereumjs-util'
 
 const { contractAddress } = config
 const { abi, unlinked_binary } = JSON.parse(GitToken)
@@ -28,7 +30,7 @@ export function blockchainDetails() {
 
 export function openSocketConnection() {
   return (dispatch) => {
-    SocketClient = new w3cwebsocket('ws://localhost:1751', 'echo-protocol')
+    SocketClient = new w3cwebsocket('wss://GitToken.org:1325', 'echo-protocol')
     SocketClient.onopen = () => {
       console.log('Socket Connection Opened')
       dispatch({ type: 'SOCKET_CONNECTION', value: true })
@@ -54,14 +56,29 @@ export function sendMessage({ input, activeTopic, contributorAddress, data }) {
           Please enter a new password
         `,
         date: new Date().getTime(),
-        topic: 'login',
+        topic: activeTopic,
         contributor: 'GitToken Helper'
       } })
     } else if (input.match(RegExp('/login'))) {
       let email = input.replace('/login ', '')
-      dispatch(verifyEmail({ contributorAddress, email }))
+      dispatch(checkEmail({ contributorAddress, email, activeTopic }))
+    } else if (input.match(RegExp('/verify'))) {
+      let email = input.replace('/verify ', '')
+      dispatch({ type: 'UPDATE_MESSENGER', id: 'inputType', value: 'password' })
+      dispatch({ type: 'UPDATE_MESSENGER', id: 'placeholder', value: 'GitHub Personal Access Token' })
+      dispatch({ type: 'UPDATE_MESSENGER', id: 'data', value: { event: 'verify', email } })
+      dispatch({ type: 'UPDATE_MESSENGER', id: 'input', value: '' })
+      dispatch({ type: 'APPEND_MESSAGE', value: {
+        msg: `Please enter your GitHub API Personal Access Token; e.g. 9f1311225e5debc230477f88ab3bad0fe4df7cf3. See https://github.com/settings/tokens for more details.`,
+        date: new Date().getTime(),
+        topic: activeTopic,
+        contributor: 'GitToken Helper'
+      } })
+    } else if (data['event'] == 'verify') {
+      const { email } = data
+      dispatch(verifyEmail({ email, contributorAddress, token: input, activeTopic }))
     } else if (data['event'] == 'newKeystore') {
-      dispatch(createKeystore({ password: input }))
+      dispatch(createKeystore({ password: input, activeTopic }))
     } else {
       SocketClient.send(JSON.stringify({
         event: data['event'] || activeTopic,
@@ -76,7 +93,7 @@ export function sendMessage({ input, activeTopic, contributorAddress, data }) {
   }
 }
 
-export function contractDetails() {
+export function contractDetails({ activeTopic }) {
   return (dispatch) => {
     join(
       GitTokenContract.totalSupply.call(),
@@ -135,7 +152,7 @@ export function authenticateEmail(_email) {
   }
 }
 
-export function createKeystore({ password }) {
+export function createKeystore({ password, activeTopic }) {
   return (dispatch) => {
     keystore.createVault({
       password
@@ -150,7 +167,7 @@ export function createKeystore({ password }) {
         dispatch({ type: 'UPDATE_MESSENGER', id: 'input', value: '' })
         dispatch({ type: 'UPDATE_MESSENGER', id: 'data', value: { } })
         dispatch({ type: 'UPDATE_MESSENGER', id: 'inputType', value: 'text' })
-        dispatch(retrieveKeystore({ }))
+        dispatch(retrieveKeystore({ activeTopic }))
       })
       // let serialized
       // localStorage.setItem
@@ -160,7 +177,7 @@ export function createKeystore({ password }) {
 
 
 
-export function retrieveKeystore({ }) {
+export function retrieveKeystore({ activeTopic }) {
   return (dispatch) => {
     const serialized = localStorage.getItem(lsKey)
     let newMessage;
@@ -169,15 +186,20 @@ export function retrieveKeystore({ }) {
       dispatch({ type: 'APPEND_MESSAGE', value: {
         msg: 'Could not find keystore; Please type `/keystore new`',
         date: new Date().getTime(),
-        topic: 'login',
+        topic: activeTopic,
         contributor: 'GitToken Helper'
       } })
+      dispatch({
+        type: 'UPDATE_MESSENGER',
+        id: 'input',
+        value: `/keystore new`
+      })
     } else {
       let ks = keystore.deserialize(serialized)
       let address = ks.getAddresses()[0]
       dispatch({ type: 'SET_GITTOKEN_DETAILS', id: 'contributorAddress', value: `0x${address}` })
       Promise.resolve().then(() => {
-        dispatch(retrieveAccountDetails({ contributorAddress: `0x${address}` }))
+        dispatch(retrieveAccountDetails({ contributorAddress: `0x${address}`, activeTopic }))
         return Promise.delay(1000);
       }).then(() => {
         dispatch({
@@ -185,7 +207,7 @@ export function retrieveKeystore({ }) {
           value: {
             msg: 'Type `/login [your@email.com]` to login',
             date: new Date().getTime(),
-            topic: 'login',
+            topic: 'account',
             contributor: 'GitToken Helper',
             data: {}
           }
@@ -203,18 +225,36 @@ export function retrieveKeystore({ }) {
   }
 }
 
-export function retrieveAccountDetails({ contributorAddress }) {
+export function retrieveAccountDetails({ contributorAddress, activeTopic }) {
   return (dispatch) => {
+      console.log('retrieveAccountDetails::GitTokenContract', GitTokenContract)
       join(
         eth.getBalanceAsync(contributorAddress),
-        GitTokenContract.balanceOf.call(contributorAddress)
+        GitTokenContract.balanceOf.call(contributorAddress),
+        GitTokenContract.totalSupply.call(),
+        GitTokenContract.decimals.call(),
       ).then((data) => {
+
+        const decimals = data[3]
+        const balance = (data[0].toNumber() / 1e18)
+        const tokenBalance = (data[1].toNumber() / Math.pow(10, decimals))
+        const totalSupply = (data[2].toNumber() / Math.pow(10, decimals))
+        const tokenOwnershipPct = (tokenBalance / totalSupply) * 100
+
+        if (balance > 0) {
+          dispatch({
+            type: 'SET_GITTOKEN_DETAILS',
+            id: 'isContributor',
+            value: true
+          })
+        }
+
         dispatch({
           type: 'APPEND_MESSAGE',
           value: {
             msg: `Account Information`,
             date: new Date().getTime(),
-            topic: 'login',
+            topic: activeTopic,
             contributor: 'GitToken Helper',
             data: {
               event: 'accountDetails',
@@ -223,10 +263,16 @@ export function retrieveAccountDetails({ contributorAddress }) {
                 value: contributorAddress
               },{
                 type: 'balance (ETH)',
-                value: data[0].toNumber()/1e18
+                value: balance
               },{
                 type: 'tokens',
-                value: data[1].toNumber()
+                value: tokenBalance
+              },{
+                type: 'total supply',
+                value: totalSupply
+              },{
+                type: 'token ownership (%)',
+                value: tokenOwnershipPct
               }]
             }
           }
@@ -238,9 +284,35 @@ export function retrieveAccountDetails({ contributorAddress }) {
   }
 }
 
-export function verifyEmail({ contributorAddress, email }) {
+export function verifyEmail({ contributorAddress, email, token, activeTopic }) {
   return (dispatch) => {
-    console.log('verifyEmail::contributorAddress, email', contributorAddress, email)
+    github({
+      token,
+      query: `query { viewer { login, email } }`,
+      variables: null
+    }, (error, result) => {
+      if (error) { console.log('verifyEmail::error',error) }
+      const { data: { viewer } } = result
+      if (email != viewer['email']) {
+        console.log('Invalid Login!')
+      } else {
+        SocketClient.send(JSON.stringify({
+          event: 'verify',
+          data: { email, contributorAddress }
+        }))
+
+        SocketClient.onmessage = (e) => {
+          console.log('verifyEmail::JSON.parse(e.data)', JSON.parse(e.data))
+
+        }
+      }
+    })
+  }
+}
+
+export function checkEmail({ contributorAddress, email, activeTopic }) {
+  return (dispatch) => {
+    console.log('checkEmail::contributorAddress, email', contributorAddress, email)
     join(
       GitTokenContract.getContributorAddress.call(email)
     ).then((data) => {
@@ -254,14 +326,18 @@ export function verifyEmail({ contributorAddress, email }) {
           value: {
             msg: `
               Account registered to ${data[0]}.
-              Please verify email for address ${contributorAddress}.
-              Type '/verify [your@email.com]'`,
+              Please verify email for address ${contributorAddress}. Type '/verify [your@email.com]'`,
             date: new Date().getTime(),
-            topic: 'login',
-            contributor: 'GitToken Helper',
-            data: {
-              event: 'verify'
-            }
+            topic: activeTopic,
+            contributor: 'GitToken Helper'
+          }
+        })
+
+        dispatch({
+          type: 'UPDATE_MESSENGER',
+          id: 'data',
+          value: {
+            event: 'verify'
           }
         })
 
@@ -271,7 +347,18 @@ export function verifyEmail({ contributorAddress, email }) {
           value: `/verify ${email}`
         })
       } else {
-        console.log('Welcome Back!!')
+        // console.log('Welcome Back!!')
+        dispatch({
+          type: 'SET_GITTOKEN_DETAILS',
+          id: 'verified',
+          value: true
+        })
+
+        dispatch({
+          type: 'UPDATE_MESSENGER',
+          id: 'activeTopic',
+          value: 'contributions'
+        })
       }
 
     }).catch((error) => {
