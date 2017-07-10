@@ -128,8 +128,8 @@ class MessengerComponent extends Component {
     const { activeTopic, input, inputType, placeholder } = messenger
 
     return (
-      <Col sm={12}>
-        <Col sm={12}>
+      <Col sm={4} md={12}>
+        <Col sm={4} md={12}>
           <div>
             <Tabs activeKey={activeTopic}
               onSelect={(id) => dispatch({ type: 'UPDATE_MESSENGER', id: 'activeTopic', value: id })}

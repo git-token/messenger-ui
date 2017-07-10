@@ -49,6 +49,7 @@ const INITIAL_GITTOKEN_STATE = {
   email: 'ryan.michael.tate@gmail.com',
   verifyCode: '',
   contributorAddress: '',
+  contractAddress: '',
   isContributor: false,
   verified: false,
   contributions: {},

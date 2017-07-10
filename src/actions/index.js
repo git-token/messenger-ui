@@ -1,5 +1,5 @@
 import Promise, { promisifyAll, join } from 'bluebird'
-import GitToken from 'gittoken-api-middleware/build/contracts/GitToken.json'
+import GitToken from 'gittoken-contracts/build/contracts/GitToken.json'
 import { store } from '../store'
 import web3 from '../web3Provider'
 import config from '../../app.config'
@@ -8,7 +8,7 @@ import { keystore, signing } from 'eth-lightwallet/dist/lightwallet.min.js'
 import github from 'github-graphql-client'
 import { sha3 } from 'ethereumjs-util'
 
-const { contractAddress } = config
+const { contractAddress, socketServer } = config
 const { abi, unlinked_binary } = JSON.parse(GitToken)
 const eth = promisifyAll(web3.eth)
 const lsKey = new Buffer('GitTokenKeystore').toString('hex')
@@ -30,14 +30,36 @@ export function blockchainDetails() {
 
 export function openSocketConnection() {
   return (dispatch) => {
-    SocketClient = new w3cwebsocket('wss://GitToken.org:1325', 'echo-protocol')
+    SocketClient = new w3cwebsocket(socketServer, 'echo-protocol')
     SocketClient.onopen = () => {
       console.log('Socket Connection Opened')
       dispatch({ type: 'SOCKET_CONNECTION', value: true })
+      dispatch(retrieveConctractDetails())
     }
 
     SocketClient.onerror = () => {
       dispatch({ type: 'SOCKET_CONNECTION', value: false })
+    }
+  }
+}
+
+export function retrieveConctractDetails() {
+  return (dispatch) => {
+    SocketClient.send(JSON.stringify({ event: 'contractDetails' }))
+
+    SocketClient.onmessage = (e) => {
+      const { contractAddress } = JSON.parse(e.data)
+      try {
+        GitTokenContract = web3.eth.contract(abi).at(contractAddress)
+        dispatch({
+          type: 'SET_GITTOKEN_DETAILS',
+          id: 'contractAddress',
+          value: contractAddress
+        })
+        dispatch()
+      } catch(error) {
+        console.log('retrieveConctractDetails::error', error)
+      }
     }
   }
 }
