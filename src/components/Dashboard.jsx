@@ -32,7 +32,6 @@ class DashboardComponent extends React.Component {
   componentDidMount() {
     const { dispatch, gittoken: { messenger: { activeTopic } } } = this.props
     dispatch(openSocketConnection())
-    dispatch(retrieveKeystore({ activeTopic }))
   }
 
   render () {

@@ -56,7 +56,7 @@ export function retrieveConctractDetails() {
           id: 'contractAddress',
           value: contractAddress
         })
-        // dispatch()
+        dispatch(retrieveKeystore({ activeTopic: 'account' }))
       } catch(error) {
         console.log('retrieveConctractDetails::error', error)
       }
