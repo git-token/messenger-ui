@@ -1,6 +1,6 @@
 {
   "name": "gittoken-messenger-ui",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "UI Components for GitToken",
   "main": "./dist/index",
   "scripts": {
