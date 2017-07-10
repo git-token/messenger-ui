@@ -41,14 +41,14 @@ class DashboardComponent extends React.Component {
     return (
       <div>
         <Row>
-          <Col sm={3} />
-          <Col sm={6} >
+          <Col sm={0} md={3} />
+        <Col sm={12} md={6}>
             <br/>
             <br/>
             <Messenger />
             <Wallet />
           </Col>
-          <Col sm={3} />
+          <Col sm={0} md={3} />
         </Row>
       </div>
     )

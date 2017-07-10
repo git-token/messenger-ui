@@ -56,7 +56,7 @@ export function retrieveConctractDetails() {
           id: 'contractAddress',
           value: contractAddress
         })
-        dispatch()
+        // dispatch()
       } catch(error) {
         console.log('retrieveConctractDetails::error', error)
       }
