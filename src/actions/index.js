@@ -48,9 +48,11 @@ export function retrieveConctractDetails() {
     SocketClient.send(JSON.stringify({ event: 'contractDetails' }))
 
     SocketClient.onmessage = (e) => {
-      const { contractAddress } = JSON.parse(e.data)
+      const { txReceipt: { contractAddress } } = JSON.parse(e.data)
+      console.log('contractAddress', contractAddress)
       try {
         GitTokenContract = web3.eth.contract(abi).at(contractAddress)
+        console.log('GitTokenContract', GitTokenContract)
         dispatch({
           type: 'SET_GITTOKEN_DETAILS',
           id: 'contractAddress',
@@ -325,7 +327,7 @@ export function verifyEmail({ contributorAddress, email, token, activeTopic }) {
 
         SocketClient.onmessage = (e) => {
           console.log('verifyEmail::JSON.parse(e.data)', JSON.parse(e.data))
-
+          dispatch(retrieveAccountDetails({ contributorAddress, activeTopic: 'account' }))
         }
       }
     })
