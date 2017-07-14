@@ -91,7 +91,7 @@ class MessengerComponent extends Component {
 
     let scroll = (_element) => {
       if (_element) {
-        _element.scrollTop = 400
+        _element.scrollTop = 600
       }
     }
 
@@ -110,7 +110,7 @@ class MessengerComponent extends Component {
         <br/>
         <div
           ref={(element) => scroll(element)} style={{
-              height: '400px',
+              height: '600px',
               overflow: 'auto'
             }}>
             <br/>
